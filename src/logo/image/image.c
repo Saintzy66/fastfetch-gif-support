@@ -291,21 +291,21 @@ bool printImageKittyDirect(bool printError)
         // Process GIF animation
         if (options->animate) {
             fflush(stdout);
-            
+
             // Calculate logo width
             uint32_t width = options->width > 0 ? options->width : 25;
             // Estimated height of the logo (or from options if specified)
             uint32_t height = options->height > 0 ? options->height : 20;
-            
+
             // Reserve space for the logo
             if (options->position == FF_LOGO_POSITION_LEFT) {
                 // IMPORTANT: Set the logo width BEFORE displaying the logo
                 // This tells Fastfetch to display text to the right of the logo
                 instance.state.logoWidth = width + options->paddingLeft + options->paddingRight + 4; // Additional buffer
                 instance.state.logoHeight = height + options->paddingTop;
-                
+
                 // Set cursor to the correct position for the logo
-                printf("\e[%u;%uH", 
+                printf("\e[%u;%uH",
                     (unsigned) options->paddingTop + 1,
                     (unsigned) options->paddingLeft + 1);
             }
@@ -321,33 +321,33 @@ bool printImageKittyDirect(bool printError)
                     fputs("Logo (kitty-direct): Animation with position right is not fully supported\n", stderr);
                 return false;
             }
-            
+
             // Call kitty icat with correct parameters
             char cmd[1024];
             if (options->width > 0) {
                 // With '--place' we can specify the exact position and size
-                snprintf(cmd, sizeof(cmd), 
-                         "kitty +kitten icat --align=left --scale-up --place=%ux%u@%ux%u %s", 
+                snprintf(cmd, sizeof(cmd),
+                         "kitty +kitten icat --align=left --scale-up --place=%ux%u@%ux%u %s",
                          width, height,
                          options->paddingLeft + 1, options->paddingTop + 1,
                          options->source.chars);
             } else {
                 // Without width specification just display the image
-                snprintf(cmd, sizeof(cmd), "kitty +kitten icat --align=left %s", 
+                snprintf(cmd, sizeof(cmd), "kitty +kitten icat --align=left %s",
                          options->source.chars);
             }
-            
+
             system(cmd);
-            
+
             // Return to the beginning of the terminal so Fastfetch can output the rest of the data
             if (options->position == FF_LOGO_POSITION_LEFT) {
                 fputs("\e[H", stdout); // Cursor back to start
             }
-            
+
             return true;
         }
         else {
-            // For non-animated GIFs, maintain normal behavior 
+            // For non-animated GIFs, maintain normal behavior
             return printImageKittyDirectSingle(printError);
         }
     }
@@ -803,8 +803,8 @@ static bool printImageChafa(FFLogoRequestData* requestData, const ImageData* ima
 
 FFLogoImageResult ffLogoPrintImageImpl(FFLogoRequestData* requestData, const FFIMData* imData)
 {
-    FF_LIBRARY_LOAD_SYMBOL(imData->library, MagickCoreGenesis, FF_LOGO_IMAGE_RESULT_INIT_ERROR);
-    FF_LIBRARY_LOAD_SYMBOL(imData->library, MagickCoreTerminus, FF_LOGO_IMAGE_RESULT_INIT_ERROR)
+    FF_LIBRARY_LOAD_SYMBOL_PTR(imData->library, imData, MagickCoreGenesis, FF_LOGO_IMAGE_RESULT_INIT_ERROR)
+    FF_LIBRARY_LOAD_SYMBOL_PTR(imData->library, imData, MagickCoreTerminus, FF_LOGO_IMAGE_RESULT_INIT_ERROR)
     FF_LIBRARY_LOAD_SYMBOL(imData->library, AcquireExceptionInfo, FF_LOGO_IMAGE_RESULT_INIT_ERROR)
     FF_LIBRARY_LOAD_SYMBOL(imData->library, DestroyExceptionInfo, FF_LOGO_IMAGE_RESULT_INIT_ERROR)
     FF_LIBRARY_LOAD_SYMBOL(imData->library, AcquireImageInfo, FF_LOGO_IMAGE_RESULT_INIT_ERROR)
@@ -986,13 +986,13 @@ static bool printCachedPixel(FFLogoRequestData* requestData)
     if(requestData->type == FF_LOGO_TYPE_IMAGE_KITTY)
     {
         fd = getCacheFD(requestData, FF_CACHE_FILE_KITTY_COMPRESSED);
-        if(fd == FF_INVALID_FD)
+        if(!ffIsValidNativeFD(fd))
             fd = getCacheFD(requestData, FF_CACHE_FILE_KITTY_UNCOMPRESSED);
     }
     else if(requestData->type == FF_LOGO_TYPE_IMAGE_SIXEL)
         fd = getCacheFD(requestData, FF_CACHE_FILE_SIXEL);
 
-    if(fd == FF_INVALID_FD)
+    if(!ffIsValidNativeFD(fd))
         return false;
 
     ffPrintCharTimes('\n', options->paddingTop);
